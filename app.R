@@ -11,7 +11,7 @@ source('imports/CollectData.R')
     sidebarLayout(
       sidebarPanel(
         fileInput('fileIn', 'Upload your  Excel File here'),
-        textInput(label = "Data Name",inputId = 'DN',value = 'ali'),
+        textInput(label = "Data Name",inputId = 'DN',value = 'NewData'),
         uiOutput('datasetnames'),
         actionButton("Get", label = 'Get')
       ),
@@ -24,7 +24,7 @@ source('imports/CollectData.R')
 
 # ----  2. Server  ----
   
-server <- function(input, output) {
+server <- function(input, output,session) {
 # ----  2.1 Set Tab Panels  ----
 output$tb <- renderUI({
   tabsetPanel(
@@ -35,7 +35,11 @@ output$tb <- renderUI({
                                                     width:890px; overflow-x: scroll;")
     ),
     #  2.1.2 Plots and discovery  ----
-    tabPanel("Data lab"
+    tabPanel("Data lab",
+      radioButtons(label = "Experiment Controls", inputId = 'ExpCtrl',choices = c('Start a new experiement',
+                                                                                 'Choose operations',
+                                                                                 'End the job')),
+      uiOutput('SelecByRadio')
       
     ),
     #  2.1.3 Data wrangling  ----
@@ -52,9 +56,26 @@ output$tb <- renderUI({
     )
   )
 })
+    #  2.1.6 Radio selected controls  ----
+output$SelecByRadio <- renderUI({
+  if(input$ExpCtrl=='Choose operations'){
+    return(
+      OpSelectUI('SelecByRadio',c('Group By','Select','Apply function on one single Column',
+                                  'Summarize by function','Summary','Unique rows','Add Index'))
+    )
+  }
+})
+
 # ----  2.2 Reactive values  ----
 code <- reactiveVal(value = "")
 DataSets <- reactiveValues()
+
+
+observe({x<-input$Get
+  updateTextInput(session, "DN", value = paste('Data_',x,sep = ''))
+})
+
+
 # ----  2.3 Import data  ----
 observeEvent(input$Get, {
   code(paste(code(), paste(input$DN ,'<- readRDS(input$fileIn$datapath))','\n')))
