@@ -13,7 +13,7 @@ library(shinydashboard)
       ),
       mainPanel(verticalLayout(
         uiOutput('tb'),
-        verbatimTextOutput('minJob')
+        # verbatimTextOutput('minJob')
       )
         ))
   )
@@ -68,9 +68,9 @@ output$tableViewer <- renderDataTable({
     as.data.frame(data) 
   }
 })
-output$minJob <- renderText({
-  code()
-})
+# output$minJob <- renderText({
+#   code()
+# })
 output$datasetnames <- renderUI({
   choices = names(DataSets)[names(DataSets)!='dList']
   selectInput(label = 'Data to load from Application environment',inputId = 'ETL',choices = choices)
