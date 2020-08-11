@@ -2,6 +2,10 @@
 library(shiny)
 library(DT)
 library(shinydashboard)
+source('imports/LibRaries.R')
+source('imports/LibMod.R')
+source('imports/FeatureSelection.R')
+source('imports/CollectData.R')
 # ----  1. User interface  ----
   ui <- fluidPage(
     sidebarLayout(
@@ -12,7 +16,7 @@ library(shinydashboard)
         actionButton("Get", label = 'Get')
       ),
       mainPanel(verticalLayout(
-        uiOutput('tb'),
+        uiOutput('tb')
         # verbatimTextOutput('minJob')
       )
         ))
@@ -48,11 +52,9 @@ output$tb <- renderUI({
     )
   )
 })
-
 # ----  2.2 Reactive values  ----
 code <- reactiveVal(value = "")
 DataSets <- reactiveValues()
-
 # ----  2.3 Import data  ----
 observeEvent(input$Get, {
   code(paste(code(), paste(input$DN ,'<- readRDS(input$fileIn$datapath))','\n')))
