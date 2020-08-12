@@ -17,7 +17,6 @@ source('imports/CollectData.R')
       mainPanel(verticalLayout(
         #  1.2.1 Pannels
            uiOutput('tb')
-        # verbatimTextOutput('minJob')
       )
         ))
   )
@@ -40,8 +39,11 @@ output$tb <- renderUI({
                                                                                  'Choose operations',
                                                                                  'End the job')),
       actionButton('Flush Code', inputId = 'MJRes'),
+      actionButton('Apply', inputId = 'Apply'),
       uiOutput('SelecByRadio'),
-      textOutput('minJOB')
+      uiOutput('SelectedUIPanel'),
+      textOutput('minJOB'),
+      textOutput('txt')
       
     ),
     #  2.1.3 Data wrangling  ----
@@ -59,81 +61,86 @@ output$tb <- renderUI({
   )
 })
     #  2.1.6 Radio selected controls  ----
-output$SelecByRadio <- renderUI({
-  if(input$ExpCtrl=='Choose operations'){
+    output$SelecByRadio <- renderUI({
+    if(input$ExpCtrl=='Choose operations'){
     return(
-      OpSelectUI('SelecByRadio',c('Group By','Select','Apply function on one single Column',
+      OpSelectUI('testOptionSelector',c('Group By','Select','Apply function on one single Column',
                                   'Summarize by function','Summary','Unique rows','Add Index'))
     )
   } else if(input$ExpCtrl=='Start a new experiement'){
-  }
+    }
 })
+    #  2.1.7 Build miniJob with selected operators  ----
+    
+    output$txt <- renderText({
+      callModule(GroupByServer,"line1")
+    })
 
-observeEvent(input$ExpCtrl, {
-  if(input$Get > 0 & input$ExpCtrl == 'Start a new experiement')
-  {
-    MiniJobCode$foo <- paste(MiniJobCode$foo, input$ETL, ' <- ', sep = '')}
-})
-
-observeEvent(input$MJRes, {
-  MiniJobCode$foo <- ""
-})
-
-
+    #  2.1.8 Generate operators UI part  ----
+    output$SelectedUIPanel <- renderUI({
+      if(!is.null(input$ETL)){
+        if(is.null(input$fileIn) | input$Get == 0){return()} else{
+          data <- eval(parse(text = paste(sep = '','DataSets$',input$ETL)))
+          as.data.frame(data) }
+          choices <- names(data)
+        if(callModule(OpSelectServer,'testOptionSelector')=='Group By'){
+          return(GroupBytUI('line1',choices))
+        }else if(callModule(OpSelectServer,'testOptionSelector')=='Select'){
+          SelectUI('line1',choices)
+        }else if(callModule(OpSelectServer,'testOptionSelector')=='Apply function on one single Column'){
+          SelectToMutateUI("line1",choices)
+        }else if(callModule(OpSelectServer,'testOptionSelector')=='Summarize by function'){
+          SummarizeUI("line1",choices)
+        }else if(callModule(OpSelectServer,'testOptionSelector')=='Summary'){
+          SummaryeUI("line1")
+        }else if(callModule(OpSelectServer,'testOptionSelector')=='Unique rows'){
+          distinctUI("line1")
+        }else if(callModule(OpSelectServer,'testOptionSelector')=='Add Index'){
+          AddIndexUI("line1")
+        }else{
+          return()
+        }
+      }
+    })
+    
 # ----  2.2 Reactive values  ----
 code <- reactiveVal(value = "")
 DataSets <- reactiveValues()
 MiniJobCode <- reactiveValues('foo' = "")
 
     #  2.2.1 default naming for data  ----
-observe({x<-input$Get
+    observe({x<-input$Get
   updateTextInput(session, "DN", value = paste('Data_',x,sep = ''))
 })
-
-
 # ----  2.3 Import data into environment and show it ----
-observeEvent(input$Get, {
-  code(paste(code(), paste(input$DN ,'<- readRDS(input$fileIn$datapath))','\n')))
-  DataSets$dList <- c(isolate(DataSets$dList), as.data.frame(readRDS(input$fileIn$datapath)))
-  eval(parse(text =paste(
-    'DataSets$',input$DN,'<- c(isolate(DataSets$',input$DN,'), as.data.frame(readRDS(input$fileIn$datapath)))'
-    ,sep = '') 
-  ))
-})
-output$tableViewer <- renderDataTable({
-  if(is.null(input$fileIn) | input$Get == 0){return()} else{
-    data <- eval(parse(text = paste(sep = '','DataSets$',input$ETL)))
-    as.data.frame(data) 
-  }
-})
-# output$minJob <- renderText({
-#   code()
-# })
-output$datasetnames <- renderUI({
-  choices = names(DataSets)[names(DataSets)!='dList']
-  selectInput(label = 'Data to load from Application environment',inputId = 'ETL',choices = choices)
-})
-# ----  2.4 Get Objects into environment  ----
-
-
-# output$tabEnv <- renderTable({
-#   DFN = names(DataSets)[names(DataSets)!='dList']
-#   Nrow <- c()
-#   Ncol <- c()
-#   p=1
-#   for (k in DFN) {
-#     eval(parse(text = paste(sep = '','data <- as.data.frame(DataSets$',k,')')))
-#     append(Nrow, nrow(data), after = 1)  
-#     append(Ncol, ncol(data), after = 1)
-#   }
-#   
-#   as.data.frame(DataSets = DFN, Rows = Nrow, Columns = Ncol)
-# })
-
+        observeEvent(input$Get, {
+          code(paste(code(), paste(input$DN ,'<- readRDS(input$fileIn$datapath))','\n')))
+          DataSets$dList <- c(isolate(DataSets$dList), as.data.frame(readRDS(input$fileIn$datapath)))
+          eval(parse(text =paste(
+          'DataSets$',input$DN,'<- c(isolate(DataSets$',input$DN,'), as.data.frame(readRDS(input$fileIn$datapath)))'
+          ,sep = '')))
+        })
+        output$tableViewer <- renderDataTable({
+          if(is.null(input$fileIn) | input$Get == 0){return()} else{
+          data <- eval(parse(text = paste(sep = '','DataSets$',input$ETL)))
+          as.data.frame(data) 
+         }
+        })
+        output$datasetnames <- renderUI({
+          choices = names(DataSets)[names(DataSets)!='dList']
+          selectInput(label = 'Data to load from Application environment',inputId = 'ETL',choices = choices)
+        })
 # ----  2.5 Code the mini job  ----
-  output$minJOB <- renderText({
-   MiniJobCode$foo
-  })
+        observeEvent(input$ExpCtrl, {
+          if(input$Get > 0 & input$ExpCtrl == 'Start a new experiement')
+           {MiniJobCode$foo <- paste(MiniJobCode$foo, ' <- ', input$ETL, sep = '')}
+        })
+        observeEvent(input$MJRes, {
+          MiniJobCode$foo <- ""
+        })
+        output$minJOB <- renderText({
+          MiniJobCode$foo
+        })
 # ----  End  ----
 }
 shinyApp(ui = ui, server = server)
