@@ -1,7 +1,4 @@
 # Section Imports ------------------------------
-library(shiny)
-library(DT)
-library(shinydashboard)
 source('imports/LibRaries.R')
 source('imports/LibMod.R')
 source('imports/FeatureSelection.R')
@@ -10,13 +7,16 @@ source('imports/CollectData.R')
   ui <- fluidPage(
     sidebarLayout(
       sidebarPanel(
-        fileInput('fileIn', 'Upload your  Excel File here'),
+    #  1.1 Sidebar Panel  ----
+        fileInput('fileIn', 'Upload your RDS File here'),
         textInput(label = "Data Name",inputId = 'DN',value = 'NewData'),
         uiOutput('datasetnames'),
-        actionButton("Get", label = 'Get')
+        actionButton("Get", label = 'Import')
       ),
+    #  1.2 MainPanel  ----
       mainPanel(verticalLayout(
-        uiOutput('tb')
+        #  1.2.1 Pannels
+           uiOutput('tb')
         # verbatimTextOutput('minJob')
       )
         ))
@@ -39,7 +39,9 @@ output$tb <- renderUI({
       radioButtons(label = "Experiment Controls", inputId = 'ExpCtrl',choices = c('Start a new experiement',
                                                                                  'Choose operations',
                                                                                  'End the job')),
-      uiOutput('SelecByRadio')
+      actionButton('Flush Code', inputId = 'MJRes'),
+      uiOutput('SelecByRadio'),
+      textOutput('minJOB')
       
     ),
     #  2.1.3 Data wrangling  ----
@@ -63,20 +65,33 @@ output$SelecByRadio <- renderUI({
       OpSelectUI('SelecByRadio',c('Group By','Select','Apply function on one single Column',
                                   'Summarize by function','Summary','Unique rows','Add Index'))
     )
+  } else if(input$ExpCtrl=='Start a new experiement'){
   }
 })
+
+observeEvent(input$ExpCtrl, {
+  if(input$Get > 0 & input$ExpCtrl == 'Start a new experiement')
+  {
+    MiniJobCode$foo <- paste(MiniJobCode$foo, input$ETL, ' <- ', sep = '')}
+})
+
+observeEvent(input$MJRes, {
+  MiniJobCode$foo <- ""
+})
+
 
 # ----  2.2 Reactive values  ----
 code <- reactiveVal(value = "")
 DataSets <- reactiveValues()
+MiniJobCode <- reactiveValues('foo' = "")
 
-
+    #  2.2.1 default naming for data  ----
 observe({x<-input$Get
   updateTextInput(session, "DN", value = paste('Data_',x,sep = ''))
 })
 
 
-# ----  2.3 Import data  ----
+# ----  2.3 Import data into environment and show it ----
 observeEvent(input$Get, {
   code(paste(code(), paste(input$DN ,'<- readRDS(input$fileIn$datapath))','\n')))
   DataSets$dList <- c(isolate(DataSets$dList), as.data.frame(readRDS(input$fileIn$datapath)))
@@ -99,6 +114,8 @@ output$datasetnames <- renderUI({
   selectInput(label = 'Data to load from Application environment',inputId = 'ETL',choices = choices)
 })
 # ----  2.4 Get Objects into environment  ----
+
+
 # output$tabEnv <- renderTable({
 #   DFN = names(DataSets)[names(DataSets)!='dList']
 #   Nrow <- c()
@@ -113,5 +130,10 @@ output$datasetnames <- renderUI({
 #   as.data.frame(DataSets = DFN, Rows = Nrow, Columns = Ncol)
 # })
 
+# ----  2.5 Code the mini job  ----
+  output$minJOB <- renderText({
+   MiniJobCode$foo
+  })
+# ----  End  ----
 }
 shinyApp(ui = ui, server = server)
