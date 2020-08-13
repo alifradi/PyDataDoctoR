@@ -42,8 +42,7 @@ output$tb <- renderUI({
       actionButton('Apply', inputId = 'Apply'),
       uiOutput('SelecByRadio'),
       uiOutput('SelectedUIPanel'),
-      textOutput('minJOB'),
-      textOutput('txt')
+      verbatimTextOutput('minJOB')
       
     ),
     #  2.1.3 Data wrangling  ----
@@ -71,9 +70,27 @@ output$tb <- renderUI({
     }
 })
     #  2.1.7 Build miniJob with selected operators  ----
-    
-    output$txt <- renderText({
-      callModule(GroupByServer,"line1")
+    observeEvent(input$Apply, {
+      
+      if(is.null(input$fileIn) | input$Get == 0){return()} else{
+        data <- as.data.frame(eval(parse(text = paste(sep = '','DataSets$',input$ETL))))
+      }
+      
+      if(callModule(OpSelectServer,'testOptionSelector')=='Group By'){
+         MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(GroupByServer,"line1"))
+      }else if(callModule(OpSelectServer,'testOptionSelector')=='Select'){
+        MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(SelectServer,"line1"))
+      }else if(callModule(OpSelectServer,'testOptionSelector')=='Apply function on one single Column'){
+        MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(SelectToMutateServer,"line1"))
+      }else if(callModule(OpSelectServer,'testOptionSelector')=='Summarize by function'){
+        MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(SummarizeServer,"line1"))
+      }else if(callModule(OpSelectServer,'testOptionSelector')=='Summary'){
+        MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(SummaryServer,"line1"))
+      }else if(callModule(OpSelectServer,'testOptionSelector')=='Unique rows'){
+        MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(distinctServer,"line1"))
+      }else if(callModule(OpSelectServer,'testOptionSelector')=='Add Index'){
+        MiniJobCode$foo <- paste( MiniJobCode$foo, callModule(AddIndexServer,"line1",nrow(data)))
+      }
     })
 
     #  2.1.8 Generate operators UI part  ----
@@ -103,6 +120,7 @@ output$tb <- renderUI({
       }
     })
     
+    
 # ----  2.2 Reactive values  ----
 code <- reactiveVal(value = "")
 DataSets <- reactiveValues()
@@ -114,7 +132,6 @@ MiniJobCode <- reactiveValues('foo' = "")
 })
 # ----  2.3 Import data into environment and show it ----
         observeEvent(input$Get, {
-          code(paste(code(), paste(input$DN ,'<- readRDS(input$fileIn$datapath))','\n')))
           DataSets$dList <- c(isolate(DataSets$dList), as.data.frame(readRDS(input$fileIn$datapath)))
           eval(parse(text =paste(
           'DataSets$',input$DN,'<- c(isolate(DataSets$',input$DN,'), as.data.frame(readRDS(input$fileIn$datapath)))'
