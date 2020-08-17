@@ -22,7 +22,7 @@ source('imports/CollectData.R')
   )
 
 # ----  2. Server  ----
-  
+options(shiny.maxRequestSize = 1000*1024^2)
 server <- function(input, output,session) {
 # ----  2.1 Set Tab Panels  ----
 output$tb <- renderUI({
@@ -30,7 +30,7 @@ output$tb <- renderUI({
     #  2.1.1 Environment Tab  ----
     tabPanel("Environment",
       # tableOutput("tabEnv")
-      box(dataTableOutput('tableViewer'),style = "height:500px; overflow-y: scroll;
+      box(dataTableOutput('tableViewer'),style = "height:700px; overflow-y: scroll;
                                                     width:890px; overflow-x: scroll;")
     ),
     #  2.1.2 Plots and discovery  ----
@@ -137,10 +137,12 @@ MiniJobCode <- reactiveValues('foo' = "")
           'DataSets$',input$DN,'<- c(isolate(DataSets$',input$DN,'), as.data.frame(readRDS(input$fileIn$datapath)))'
           ,sep = '')))
         })
-        output$tableViewer <- renderDataTable({
+        output$tableViewer <- renderDT({
           if(is.null(input$fileIn) | input$Get == 0){return()} else{
           data <- eval(parse(text = paste(sep = '','DataSets$',input$ETL)))
-          as.data.frame(data) 
+          datatable(as.data.frame(data),filter = "top",options = list(
+            pageLength = 5
+          ))
          }
         })
         output$datasetnames <- renderUI({
