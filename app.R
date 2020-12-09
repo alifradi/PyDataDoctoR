@@ -40,9 +40,13 @@ output$tb <- renderUI({
                                                                                  'End the job')),
       actionButton('Flush Code', inputId = 'MJRes'),
       actionButton('Apply', inputId = 'Apply'),
+      actionButton('Save to job directory', inputId = 'toDirect'),
       uiOutput('SelecByRadio'),
       uiOutput('SelectedUIPanel'),
-      verbatimTextOutput('minJOB')
+    #  Mini Job code  ----
+
+      splitLayout(textInput(label = 'State output name', inputId = 'MinJobCodeVar', value = stri_rand_strings(1, 10))
+        ,verbatimTextOutput('minJOB'))
       
     ),
     #  2.1.3 Data wrangling  ----
@@ -50,11 +54,14 @@ output$tb <- renderUI({
       
     ),
     #  2.1.4 History  ----
-    tabPanel("History"
-             
+    tabPanel("History",
+            verbatimTextOutput('JOB') 
     ),
     #  2.1.5 Execute script  ----
-    tabPanel("Execute script"
+    tabPanel("Execute script",
+             actionButton(label = "Evaluate", inputId = 'EvCode'),
+             textInput(label = 'Type your R script down here',inputId = 'scrEval',value = as.character("1+2")),
+             verbatimTextOutput('resSrc')
              
     )
   )
@@ -125,6 +132,7 @@ output$tb <- renderUI({
 code <- reactiveVal(value = "")
 DataSets <- reactiveValues()
 MiniJobCode <- reactiveValues('foo' = "")
+JobCode <- reactiveValues('foo' = "")
 
     #  2.2.1 default naming for data  ----
     observe({x<-input$Get
@@ -152,13 +160,29 @@ MiniJobCode <- reactiveValues('foo' = "")
 # ----  2.5 Code the mini job  ----
         observeEvent(input$ExpCtrl, {
           if(input$Get > 0 & input$ExpCtrl == 'Start a new experiement')
-           {MiniJobCode$foo <- paste(MiniJobCode$foo, ' <- ', input$ETL, sep = '')}
+           {MiniJobCode$foo <- paste(MiniJobCode$foo,input$MinJobCodeVar ,' <- ', input$ETL, sep = '')}
         })
         observeEvent(input$MJRes, {
           MiniJobCode$foo <- ""
         })
         output$minJOB <- renderText({
           MiniJobCode$foo
+        })
+    #  2.6 Code the Job  ----
+        observeEvent(input$toDirect, {
+          JobCode$foo <- paste(JobCode$foo, MiniJobCode$foo, sep = '\n')
+        })
+        output$JOB <- renderText({
+          JobCode$foo
+        })
+    #  2.7 Execute code  ----
+        
+        
+        observeEvent(input$EvCode, {
+          out = eval(parse(text = input$scrEval))
+          output$resSrc<- renderText({
+            return(out)
+          })
         })
 # ----  End  ----
 }

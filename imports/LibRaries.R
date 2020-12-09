@@ -41,6 +41,8 @@ library("caret")
 library("rsample")
 library("dendextend")
 library("ClustOfVar")
+# Section String libraries ------------------------------
+library(stringi)
 
 
 
